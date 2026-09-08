@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>කණ්ඩායම් ලියාපදිංචිය</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F3F6F4; --panel:#FFFFFF; --ink:#1E2A26; --ink-soft:#5B6B65;
+    --pine:#1F4B3F; --pine-deep:#163830; --border:#DDE5DF; --danger:#B3462C;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Noto Sans Sinhala","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+  .wrap{max-width:520px;margin:0 auto;padding:22px 16px 60px;}
+  h1{font-size:19px;color:var(--pine-deep);margin:0 0 4px;}
+  .sub{font-size:13px;color:var(--ink-soft);margin:0 0 20px;}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;background:var(--panel);padding:6px;border-radius:999px;border:1px solid var(--border);}
+  .tab-btn{flex:1;border:none;background:transparent;padding:11px 8px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .tab-btn.active{background:var(--pine);color:#fff;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;}
+  label{display:block;font-size:13.5px;font-weight:600;color:var(--pine-deep);margin:14px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  input, select{width:100%;border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:14.5px;font-family:inherit;background:#FAFBFA;color:var(--ink);}
+  input:focus, select:focus{outline:2px solid #4C8C6D;outline-offset:1px;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  button.primary{width:100%;margin-top:20px;border:none;background:var(--pine);color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:10px;cursor:pointer;}
+  button.primary:hover{background:var(--pine-deep);}
+  button.primary:disabled{opacity:.6;cursor:not-allowed;}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:13.5px;display:none;}
+  .msg.success{display:block;background:#E7F3EC;color:var(--pine-deep);}
+  .msg.error{display:block;background:#FBE9E3;color:var(--danger);}
+  .result-box{margin-top:16px;padding:16px;border-radius:12px;background:#E7F3EC;text-align:center;}
+  .result-box .num{font-size:34px;font-weight:800;color:var(--pine-deep);}
+  .result-box .lbl{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .mates{margin-top:12px;text-align:left;font-size:13.5px;}
+  .mates li{margin-bottom:4px;}
+  .config-warning{background:#FBE9E3;color:var(--danger);padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI හා තොරතුරු තාක්ෂණ වැඩසටහන</h1>
+  <p class="sub">කණ්ඩායම් ලියාපදිංචිය</p>
+
+  <div id="configWarning" class="config-warning" style="display:none;">
+    ⚠️ SUPABASE_URL / SUPABASE_ANON_KEY මෙතන config කරලා නැහැ. script tag එකේ පහළින් තියෙන අගයන් දෙක වෙනස් කරන්න.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="register">ලියාපදිංචි වන්න</button>
+    <button class="tab-btn" data-tab="check">මගේ Group එක බලන්න</button>
+  </div>
+
+  <!-- REGISTER -->
+  <section class="panel active" id="panel-register">
+    <div class="card">
+      <label for="fullName">ඔබේ නම</label>
+      <input id="fullName" type="text" placeholder="සම්පූර්ණ නම" maxlength="80">
+
+      <label for="phone">දුරකථන අංකය</label>
+      <input id="phone" type="tel" placeholder="07XXXXXXXX" maxlength="15">
+      <p class="hint">Group එක පසුව බලාගන්න මේ අංකයම ඕනා වේවි - හරියටම ලියන්න.</p>
+
+      <label for="school1">සේවය කරන පාසල 1</label>
+      <input id="school1" type="text" placeholder="පාසලේ නම">
+
+      <label for="school2">සේවය කරන පාසල 2 (අදාළ නම් පමණක්)</label>
+      <input id="school2" type="text" placeholder="අදාළ නම් පමණක් - නැත්නම් හිස්ව තබන්න">
+
+      <label for="level">AI හා තොරතුරු තාක්ෂණ භාවිතය සම්බන්ධයෙන් ඔබ</label>
+      <select id="level">
+        <option value="">තෝරන්න</option>
+        <option value="beginner">ආධුනිකයි</option>
+        <option value="intermediate">මධ්‍යස්ථයි</option>
+        <option value="advanced">ඉහළ දැනුමක් තිබේ</option>
+      </select>
+
+      <button class="primary" id="submitBtn">ලියාපදිංචි වන්න</button>
+      <div class="msg" id="registerMsg"></div>
+    </div>
+  </section>
+
+  <!-- CHECK GROUP -->
+  <section class="panel" id="panel-check">
+    <div class="card">
+      <label for="checkPhone">ලියාපදිංචි වූ දුරකථන අංකය</label>
+      <input id="checkPhone" type="tel" placeholder="07XXXXXXXX" maxlength="15">
+      <button class="primary" id="checkBtn">Group එක බලන්න</button>
+      <div class="msg" id="checkMsg"></div>
+      <div class="result-box" id="resultBox" style="display:none;">
+        <div class="lbl">ඔබේ කණ්ඩායම</div>
+        <div class="num" id="groupNum">-</div>
+        <ul class="mates" id="matesList"></ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ============================================================
+// මෙතන ඔබේ Supabase Project Settings > API එකෙන් ලබාගත්
+// URL එකයි anon key එකයි දාන්න.
+// ============================================================
+const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+
+let supabase = null;
+try{
+  if(!SUPABASE_URL.includes("YOUR-PROJECT-REF") && !SUPABASE_ANON_KEY.includes("YOUR-ANON")){
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    document.getElementById('configWarning').style.display = 'block';
+  }
+}catch(e){
+  document.getElementById('configWarning').style.display = 'block';
+}
+
+// ---- tabs ----
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function normalizePhone(v){
+  return v.replace(/[\s\-]/g,'').trim();
+}
+
+function showMsg(el, text, type){
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+// ---- register ----
+document.getElementById('submitBtn').addEventListener('click', async ()=>{
+  const msgEl = document.getElementById('registerMsg');
+  msgEl.style.display = 'none';
+
+  if(!supabase){
+    showMsg(msgEl, 'Page එක තාම සකසා නැහැ (Supabase keys නැහැ). Admin ට කියන්න.', 'error');
+    return;
+  }
+
+  const full_name = document.getElementById('fullName').value.trim();
+  const phone = normalizePhone(document.getElementById('phone').value);
+  const school1 = document.getElementById('school1').value.trim();
+  const school2 = document.getElementById('school2').value.trim();
+  const level = document.getElementById('level').value;
+
+  if(!full_name || !phone || !school1 || !level){
+    showMsg(msgEl, 'කරුණාකර නම, දුරකථන අංකය, පාසල 1, සහ දැනුම් මට්ටම සියල්ලම පුරවන්න.', 'error');
+    return;
+  }
+  if(phone.length < 9){
+    showMsg(msgEl, 'දුරකථන අංකය හරි නැහැ, නැවත පරීක්ෂා කරන්න.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'යවමින්...';
+
+  const { error } = await supabase.from('participants').insert({
+    full_name, phone, school1,
+    school2: school2 || null,
+    level
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'ලියාපදිංචි වන්න';
+
+  if(error){
+    if(error.code === '23505'){
+      showMsg(msgEl, 'මේ දුරකථන අංකයෙන් දැනටමත් ලියාපදිංචි වී ඇත.', 'error');
+    } else {
+      showMsg(msgEl, 'දෝෂයක් ඇතිවුණා: ' + error.message, 'error');
+    }
+    return;
+  }
+
+  showMsg(msgEl, '✅ ලියාපදිංචිය සාර්ථකයි! කණ්ඩායම් සකසූ පසු "මගේ Group එක බලන්න" tab එකෙන් බලාගන්න.', 'success');
+  document.getElementById('fullName').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('school1').value = '';
+  document.getElementById('school2').value = '';
+  document.getElementById('level').value = '';
+});
+
+// ---- check group ----
+document.getElementById('checkBtn').addEventListener('click', async ()=>{
+  const msgEl = document.getElementById('checkMsg');
+  const resultBox = document.getElementById('resultBox');
+  msgEl.style.display = 'none';
+  resultBox.style.display = 'none';
+
+  if(!supabase){
+    showMsg(msgEl, 'Page එක තාම සකසා නැහැ (Supabase keys නැහැ). Admin ට කියන්න.', 'error');
+    return;
+  }
+
+  const phone = normalizePhone(document.getElementById('checkPhone').value);
+  if(!phone){
+    showMsg(msgEl, 'දුරකථන අංකය ඇතුළත් කරන්න.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('checkBtn');
+  btn.disabled = true;
+  btn.textContent = 'සොයමින්...';
+
+  const { data, error } = await supabase.rpc('get_my_group', { p_phone: phone });
+
+  btn.disabled = false;
+  btn.textContent = 'Group එක බලන්න';
+
+  if(error){
+    showMsg(msgEl, 'දෝෂයක්: ' + error.message, 'error');
+    return;
+  }
+  if(!data || data.length === 0 || data[0].my_group === null){
+    showMsg(msgEl, 'ඔබේ දුරකථන අංකයෙන් ලියාපදිංචියක් හමු නොවුනා, හෝ කණ්ඩායම් තවම සකසා නැහැ.', 'error');
+    return;
+  }
+
+  const row = data[0];
+  document.getElementById('groupNum').textContent = row.my_group;
+  const matesList = document.getElementById('matesList');
+  matesList.innerHTML = '';
+  if(row.group_mates && row.group_mates.length){
+    const heading = document.createElement('div');
+    heading.className = 'lbl';
+    heading.style.margin = '10px 0 4px';
+    heading.textContent = 'ඔබේ කණ්ඩායමේ අනෙක් අය:';
+    matesList.appendChild(heading);
+    row.group_mates.forEach(name=>{
+      const li = document.createElement('li');
+      li.textContent = name;
+      matesList.appendChild(li);
+    });
+  }
+  resultBox.style.display = 'block';
+});
+</script>
+</body>
+</html>
