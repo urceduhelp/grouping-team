@@ -38,6 +38,59 @@
   .mates{margin-top:12px;text-align:left;font-size:13.5px;}
   .mates li{margin-bottom:4px;}
   .config-warning{background:#FBE9E3;color:var(--danger);padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:16px;}
+
+  /* success popup */
+  .popup-backdrop{
+    position:fixed; inset:0;
+    background:rgba(22,32,28,0.5);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+    padding:20px;
+  }
+  .popup-backdrop.show{ display:flex; }
+  .popup-box{
+    background:#fff;
+    border-radius:18px;
+    padding:28px 22px;
+    max-width:340px;
+    width:100%;
+    text-align:center;
+    animation: popIn .18s ease;
+  }
+  @keyframes popIn{ from{opacity:0; transform:scale(.92);} to{opacity:1; transform:scale(1);} }
+  .popup-box .check{
+    width:56px;height:56px;
+    border-radius:50%;
+    background:#E7F3EC;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 14px;
+  }
+  .popup-box .check svg{ width:28px;height:28px; }
+  .popup-box h3{
+    margin:0 0 8px;
+    font-size:17px;
+    color:var(--pine-deep);
+  }
+  .popup-box p{
+    margin:0 0 20px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+  }
+  .popup-box button{
+    width:100%;
+    border:none;
+    background:var(--pine);
+    color:#fff;
+    font-weight:700;
+    font-size:14.5px;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .popup-box button:hover{ background:var(--pine-deep); }
 </style>
 </head>
 <body>
@@ -99,18 +152,29 @@
   </section>
 </div>
 
+<div class="popup-backdrop" id="successPopup">
+  <div class="popup-box">
+    <div class="check">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1F4B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h3>ලියාපදිංචිය සාර්ථකයි!</h3>
+    <p>ඔබේ දත්ත සාර්ථකව සුරැකිණි. කණ්ඩායම් සකසූ පසු "මගේ Group එක බලන්න" tab එකෙන් ඔබේ group එක බලාගන්න පුළුවන්.</p>
+    <button id="popupOkBtn">හරි, තේරුණා</button>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // මෙතන ඔබේ Supabase Project Settings > API එකෙන් ලබාගත්
 // URL එකයි anon key එකයි දාන්න.
 // ============================================================
-const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+const SUPABASE_URL = "https://jcijglwpkfluyzrltimk.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjaWpnbHdwa2ZsdXl6cmx0aW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MzU3OTUsImV4cCI6MjA4MjQxMTc5NX0.dvT8OiyVEiYn_DhkMakmSq1Vvr4REDr0kYPnyqCtWHs";
 
-let supabase = null;
+let sb = null;
 try{
   if(!SUPABASE_URL.includes("YOUR-PROJECT-REF") && !SUPABASE_ANON_KEY.includes("YOUR-ANON")){
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } else {
     document.getElementById('configWarning').style.display = 'block';
   }
@@ -142,7 +206,7 @@ document.getElementById('submitBtn').addEventListener('click', async ()=>{
   const msgEl = document.getElementById('registerMsg');
   msgEl.style.display = 'none';
 
-  if(!supabase){
+  if(!sb){
     showMsg(msgEl, 'Page එක තාම සකසා නැහැ (Supabase keys නැහැ). Admin ට කියන්න.', 'error');
     return;
   }
@@ -166,7 +230,7 @@ document.getElementById('submitBtn').addEventListener('click', async ()=>{
   btn.disabled = true;
   btn.textContent = 'යවමින්...';
 
-  const { error } = await supabase.from('participants').insert({
+  const { error } = await sb.from('participants').insert({
     full_name, phone, school1,
     school2: school2 || null,
     level
@@ -184,12 +248,20 @@ document.getElementById('submitBtn').addEventListener('click', async ()=>{
     return;
   }
 
-  showMsg(msgEl, '✅ ලියාපදිංචිය සාර්ථකයි! කණ්ඩායම් සකසූ පසු "මගේ Group එක බලන්න" tab එකෙන් බලාගන්න.', 'success');
+  showMsg(msgEl, '✅ ලියාපදිංචිය සාර්ථකයි!', 'success');
+  document.getElementById('successPopup').classList.add('show');
   document.getElementById('fullName').value = '';
   document.getElementById('phone').value = '';
   document.getElementById('school1').value = '';
   document.getElementById('school2').value = '';
   document.getElementById('level').value = '';
+});
+
+document.getElementById('popupOkBtn').addEventListener('click', ()=>{
+  document.getElementById('successPopup').classList.remove('show');
+});
+document.getElementById('successPopup').addEventListener('click', (e)=>{
+  if(e.target.id === 'successPopup') e.currentTarget.classList.remove('show');
 });
 
 // ---- check group ----
@@ -199,7 +271,7 @@ document.getElementById('checkBtn').addEventListener('click', async ()=>{
   msgEl.style.display = 'none';
   resultBox.style.display = 'none';
 
-  if(!supabase){
+  if(!sb){
     showMsg(msgEl, 'Page එක තාම සකසා නැහැ (Supabase keys නැහැ). Admin ට කියන්න.', 'error');
     return;
   }
@@ -214,7 +286,7 @@ document.getElementById('checkBtn').addEventListener('click', async ()=>{
   btn.disabled = true;
   btn.textContent = 'සොයමින්...';
 
-  const { data, error } = await supabase.rpc('get_my_group', { p_phone: phone });
+  const { data, error } = await sb.rpc('get_my_group', { p_phone: phone });
 
   btn.disabled = false;
   btn.textContent = 'Group එක බලන්න';
